@@ -5,7 +5,6 @@ from Gomoku import Gomoku
 
 pygame.init()
 
-
 running = True
 gomoku = Gomoku()
 board = Board()
