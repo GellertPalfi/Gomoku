@@ -1,5 +1,0 @@
-Remove magic numbers
-add restart button
-add req.txt
-add readme
-add aiplayer
