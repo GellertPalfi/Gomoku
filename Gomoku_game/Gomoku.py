@@ -1,6 +1,8 @@
 import itertools
+import time
 
 import pygame
+
 from Board import Board
 from Colors import Colors
 
@@ -24,6 +26,8 @@ class Gomoku:
         self.screen = pygame.display.set_mode(
             (self.screen_size_horizontal, self.screen_size_vertical)
         )
+        # Black(1), White(2)
+        self.last_player_value = 1
 
     def draw_background(self):
         rect = pygame.Rect(0, 0, self.screen_size_horizontal, self.screen_size_vertical)
@@ -52,31 +56,34 @@ class Gomoku:
         # -1 is used because of array indexing starting at 0
         x = (x + half) // self.size - 1
         y = (y + half) // self.size - 1
-        print(y,x)
-        print(self.board.in_bounds(x, y))
-        print(self.board.is_empty(y, x))
+
         # switch x and y, because 2D array indexing takes in the row (y) coordinate first
         # then the column (x)
         if self.board.in_bounds(x, y) and self.board.is_empty(y, x):
             self.board.drop_piece(y, x, self.ply)
             x = x * self.size + PADDING
             y = y * self.size + PADDING
-            color = Colors.BLACK if self.ply % 2 == 0 else Colors.WHITE
-            self.ply += 1
+            self.last_player_value = 1 if self.ply % 2 == 0 else 2
+            color = Colors.BLACK if self.last_player_value == 1 else Colors.WHITE
 
             pygame.draw.circle(self.screen, color, (x, y), self.piece_size)
+            self.ply += 1
 
     def draw_board(self):
         self.draw_background()
         self.draw_lines()
 
     def create_text(self, text):
-        my_font = pygame.font.Font('freesansbold.ttf', 32)
+        my_font = pygame.font.Font("freesansbold.ttf", 32)
         text_surface = my_font.render(text, False, Colors.WHITE, Colors.BLACK)
-        self.screen.blit(text_surface, (PADDING,PADDING))
+        # ToDO: Remove magic numbers
+        self.screen.blit(text_surface, (390, 0))
 
-    
-    
+    def restart(self):
+        time.sleep(5)
+        self.draw_board()
+        self.board = Board(ROWS, COLS)
+
     def play(self):
         running = True
         self.draw_board()
@@ -85,6 +92,12 @@ class Gomoku:
         while running:
             if self.ply == ROWS * COLS:
                 self.create_text("draw")
+
+            someone_won = self.board.check_win(self.last_player_value)
+            if someone_won:
+                text = "Black Won" if self.ply % 2 == 0 else "White Won"
+                self.create_text(text)
+                pygame.display.update()
 
             # Did the user click the window close button?
             for event in pygame.event.get():
