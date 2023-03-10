@@ -1,0 +1,4 @@
+Remove magic numbers
+add restart button
+add readme
+add aiplayer

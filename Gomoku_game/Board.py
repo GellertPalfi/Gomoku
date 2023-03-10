@@ -1,4 +1,8 @@
+import time
+
 import numpy as np
+from scipy.signal import convolve2d
+
 
 class Board:
     def __init__(self, rows=19, cols=19):
@@ -20,42 +24,33 @@ class Board:
         num_representation = 1 if ply % 2 == 0 else 2
         self.board[row][col] = num_representation
         print(self.board)
-    
-    def check_win(self, last_player_value):
-        # check for horizontal win
-        for c in range(self.cols - 4):
-            for r in range(self.rows):
-                if np.all(self.board[r, c:c+5] == last_player_value):
-                    return True
 
-        # check for vertical win
-        for c in range(self.cols):
-            for r in range(self.rows - 4):
-                if np.all(self.board[r:r+5, c] == last_player_value):
-                    return True
+    def winning_move(self, position):
+        player_value = self.get_value(position)
+        horizontal_kernel = np.array([[1, 1, 1, 1, 1]])
+        vertical_kernel = np.transpose(horizontal_kernel)
+        diag1_kernel = np.eye(5, dtype=np.uint8)
+        diag2_kernel = np.fliplr(diag1_kernel)
+        detection_kernels = [
+            horizontal_kernel,
+            vertical_kernel,
+            diag1_kernel,
+            diag2_kernel,
+        ]
 
-        # check for positively sloped diagonal wih
-        for c in range(self.cols - 4):
-            for r in range(4, self.rows):
-                if (
-                    self.board[r, c] == last_player_value
-                    and self.board[r-1, c+1] == last_player_value
-                    and self.board[r-2, c+2] == last_player_value
-                    and self.board[r-3, c+3] == last_player_value
-                    and self.board[r-4, c+4] == last_player_value
-                ):
-                    return True
-
-        # check for negatively sloped diagonal win
-        for c in range(self.cols - 4):
-            for r in range(self.rows - 4):
-                if (
-                    self.board[r, c] == last_player_value
-                    and self.board[r+1, c+1] == last_player_value
-                    and self.board[r+2, c+2] == last_player_value
-                    and self.board[r+3, c+3] == last_player_value
-                    and self.board[r+4, c+4] == last_player_value
-                ):
-                    return True
-
+        for kernel in detection_kernels:
+            if (
+                convolve2d(self.board == player_value, kernel, mode="valid") == 5
+            ).any():
+                return True
         return False
+
+    def check_win(self, position):
+        return self.winning_move(position)
+
+    def get_board(self):
+        return self.board
+
+    def get_value(self, position):
+        row, col = position
+        return int(self.board[row][col])

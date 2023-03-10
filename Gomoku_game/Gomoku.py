@@ -3,6 +3,7 @@ import time
 
 import pygame
 
+from Aiplayer import Aiplayer
 from Board import Board
 from Colors import Colors
 
@@ -28,6 +29,8 @@ class Gomoku:
         )
         # Black(1), White(2)
         self.last_player_value = 1
+        self.Aiplayer = Aiplayer()
+        self.last_move = None
 
     def draw_background(self):
         rect = pygame.Rect(0, 0, self.screen_size_horizontal, self.screen_size_vertical)
@@ -61,6 +64,7 @@ class Gomoku:
         # then the column (x)
         if self.board.in_bounds(x, y) and self.board.is_empty(y, x):
             self.board.drop_piece(y, x, self.ply)
+            self.last_move = (y, x)
             x = x * self.size + PADDING
             y = y * self.size + PADDING
             self.last_player_value = 1 if self.ply % 2 == 0 else 2
@@ -80,28 +84,46 @@ class Gomoku:
         self.screen.blit(text_surface, (390, 0))
 
     def restart(self):
-        time.sleep(5)
+        time.sleep(2)
         self.draw_board()
         self.board = Board(ROWS, COLS)
 
     def play(self):
         running = True
+        game_over = False
+        self.ply = 0
         self.draw_board()
         pygame.display.set_caption("Gomoku (Connet 5)")
 
         while running:
+            pygame.display.update()
+
             if self.ply == ROWS * COLS:
                 self.create_text("draw")
-
-            someone_won = self.board.check_win(self.last_player_value)
-            if someone_won:
-                text = "Black Won" if self.ply % 2 == 0 else "White Won"
-                self.create_text(text)
-                pygame.display.update()
+            if self.ply % 2 == 1:
+                pos = self.Aiplayer.get_move()
+                self.draw_piece(*pos)
+            if self.ply >= 9:
+                someone_won = self.board.check_win(self.last_move)
+                if someone_won:
+                    text = "Black Won" if self.ply % 2 == 1 else "White Won"
+                    self.create_text(text)
+                    pygame.display.update()
+                    game_over = True
 
             # Did the user click the window close button?
             for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if game_over:
+                    my_font = pygame.font.Font("freesansbold.ttf", 32)
+                    text = my_font.render("restart", True, Colors.BLACK)
+                    pygame.draw.rect(
+                        self.screen, Colors.BROWN, [self.width / 2, 0, 200, 200]
+                    )
+                    self.screen.blit(text, (self.width / 2 + 50, self.height / 2))
+                    self.restart()
+                    self.play()
+
+                if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
 
                     pos = pygame.mouse.get_pos()
                     print(pos)
@@ -109,5 +131,4 @@ class Gomoku:
 
                 if event.type == pygame.QUIT:
                     running = False
-
-            pygame.display.update()
+                    pygame.display.quit()
