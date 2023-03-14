@@ -1,14 +1,12 @@
 import pygame
+from Aiplayer import Aiplayer
 from Board import Board
 
 from Gomoku import Gomoku
 
 pygame.init()
-
-running = True
+# aiplayer = Aiplayer()
 gomoku = Gomoku()
-board = Board()
-
 
 gomoku.play()
 # Done! Time to quit.

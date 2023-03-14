@@ -2,14 +2,20 @@ import itertools
 import time
 
 import pygame
-
 from Aiplayer import Aiplayer
 from Board import Board
-from Colors import Colors
 
 ROWS = 19
 COLS = 19
 PADDING = 50
+
+
+class Colors:
+    BLACK = 0, 0, 0
+    WHITE = 200, 200, 200
+    ORANGE = 255, 127, 80
+    BROWN = 205, 128, 0
+    GREY = 150, 150, 150
 
 
 class Gomoku:
@@ -67,68 +73,87 @@ class Gomoku:
             self.last_move = (y, x)
             x = x * self.size + PADDING
             y = y * self.size + PADDING
+
             self.last_player_value = 1 if self.ply % 2 == 0 else 2
             color = Colors.BLACK if self.last_player_value == 1 else Colors.WHITE
-
             pygame.draw.circle(self.screen, color, (x, y), self.piece_size)
+
             self.ply += 1
 
     def draw_board(self):
         self.draw_background()
         self.draw_lines()
 
-    def create_text(self, text):
+    def create_ending_textbox(self, text):
         my_font = pygame.font.Font("freesansbold.ttf", 32)
         text_surface = my_font.render(text, False, Colors.WHITE, Colors.BLACK)
-        # ToDO: Remove magic numbers
-        self.screen.blit(text_surface, (390, 0))
+        box_x = 300
+        box_y = 400
+        box_width = 400
+        box_height = 150
+
+        # greybox
+        pygame.draw.rect(
+            self.screen, Colors.GREY, (box_x, box_y, box_width, box_height)
+        )
+        # black outline
+        pygame.draw.rect(
+            self.screen,
+            Colors.BLACK,
+            (box_x + 2, box_y + 2, box_width - 4, box_height - 4),
+            2,
+        )
+
+        horizontal_ofset = box_width / 3.5
+        vertical_ofset = box_height / 4
+
+        self.screen.blit(
+            text_surface, (box_x + horizontal_ofset, box_y + vertical_ofset)
+        )
 
     def restart(self):
         time.sleep(2)
         self.draw_board()
         self.board = Board(ROWS, COLS)
+        self.ply = 0
 
-    def play(self):
+    def play(self, aiplayer=None):
         running = True
         game_over = False
-        self.ply = 0
         self.draw_board()
-        pygame.display.set_caption("Gomoku (Connet 5)")
+        pygame.display.set_caption("Gomoku (Connect 5)")
 
         while running:
             pygame.display.update()
 
-            if self.ply == ROWS * COLS:
-                self.create_text("draw")
-            if self.ply % 2 == 1:
-                pos = self.Aiplayer.get_move()
-                self.draw_piece(*pos)
             if self.ply >= 9:
-                someone_won = self.board.check_win(self.last_move)
+                someone_won = self.board.winner(self.last_move, self.last_player_value)
                 if someone_won:
                     text = "Black Won" if self.ply % 2 == 1 else "White Won"
-                    self.create_text(text)
+                    self.create_ending_textbox(text)
                     pygame.display.update()
                     game_over = True
 
-            # Did the user click the window close button?
+            if self.ply == ROWS * COLS:
+                self.create_ending_textbox("Draw")
+                pygame.display.update()
+                game_over = True
+
             for event in pygame.event.get():
-                if game_over:
-                    my_font = pygame.font.Font("freesansbold.ttf", 32)
-                    text = my_font.render("restart", True, Colors.BLACK)
-                    pygame.draw.rect(
-                        self.screen, Colors.BROWN, [self.width / 2, 0, 200, 200]
-                    )
-                    self.screen.blit(text, (self.width / 2 + 50, self.height / 2))
-                    self.restart()
-                    self.play()
+                if event.type == pygame.QUIT:
+                    running = False
+                    pygame.display.quit()
+
+                if aiplayer:
+                    if self.ply % 2 == 1:
+                        move = aiplayer.move(self.board)
+                        self.draw_piece(*move)
 
                 if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
-
                     pos = pygame.mouse.get_pos()
                     print(pos)
                     self.draw_piece(*pos)
 
-                if event.type == pygame.QUIT:
-                    running = False
-                    pygame.display.quit()
+            if game_over:
+                self.restart()
+                game_over = False

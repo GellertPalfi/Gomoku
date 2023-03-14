@@ -21,12 +21,12 @@ class Board:
         return self.board[row][col] == 0
 
     def drop_piece(self, row, col, ply):
-        num_representation = 1 if ply % 2 == 0 else 2
-        self.board[row][col] = num_representation
+        player_value = 1 if ply % 2 == 0 else 2
+        self.board[row][col] = player_value
         print(self.board)
 
-    def winning_move(self, position):
-        player_value = self.get_value(position)
+    def winning_move(self, position, player_value):
+        row, col = position
         horizontal_kernel = np.array([[1, 1, 1, 1, 1]])
         vertical_kernel = np.transpose(horizontal_kernel)
         diag1_kernel = np.eye(5, dtype=np.uint8)
@@ -38,15 +38,20 @@ class Board:
             diag2_kernel,
         ]
 
+        row_start = max(row - 4, 0)
+        row_end = min(row + 4, self.rows - 4)
+        col_start = max(col - 4, 0)
+        col_end = min(col + 4, self.cols - 4)
+        subboard = self.board[row_start : row_end + 1, col_start : col_end + 1]
+        
         for kernel in detection_kernels:
-            if (
-                convolve2d(self.board == player_value, kernel, mode="valid") == 5
-            ).any():
+            # Check if the kernel matches around the last move
+            if (convolve2d(subboard == player_value, kernel) == 5).any():
                 return True
         return False
 
-    def check_win(self, position):
-        return self.winning_move(position)
+    def winner(self, position, player_value):
+        return self.winning_move(position, player_value)
 
     def get_board(self):
         return self.board
@@ -54,3 +59,10 @@ class Board:
     def get_value(self, position):
         row, col = position
         return int(self.board[row][col])
+
+    def copy(self):
+        new_board = Board(self.rows, self.cols)
+        for i in range(self.rows):
+            for j in range(self.cols):
+                new_board.board[i][j] = self.board[i][j]
+        return new_board
